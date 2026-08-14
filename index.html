@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guess the Number 🎮</title>
+<style>
+    * { box-sizing: border-box; }
+    body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-family: Arial, sans-serif;
+        background: #1e1e2f;
+        color: white;
+    }
+    .game {
+        width: min(92%, 460px);
+        padding: 25px;
+        border-radius: 20px;
+        text-align: center;
+        background: #292943;
+        box-shadow: 0 10px 35px rgba(0,0,0,.35);
+    }
+    h1 { margin: 0 0 20px; }
+    select, input, button {
+        width: 100%;
+        padding: 12px;
+        margin: 7px 0;
+        border: 0;
+        border-radius: 10px;
+        font-size: 16px;
+    }
+    select, input { background: white; color: #222; }
+    button {
+        color: white;
+        font-weight: bold;
+        cursor: pointer;
+    }
+    .guess { background: #4caf50; }
+    .hint { background: #ff9800; }
+    .new { background: #2196f3; }
+    .result {
+        min-height: 30px;
+        margin: 15px 0;
+        font-weight: bold;
+        font-size: 18px;
+    }
+    .stats {
+        line-height: 1.7;
+        margin-top: 15px;
+        padding: 12px;
+        border-radius: 12px;
+        background: #1e1e2f;
+    }
+    .win { animation: pop .35s ease-in-out 3; }
+    @keyframes pop {
+        50% { transform: scale(1.08); }
+    }
+</style>
+</head>
+<body>
+
+<div class="game" id="game">
+    <h1>🎮 GUESS THE NUMBER</h1>
+
+    <select id="difficulty">
+        <option value="10">Easy (1–10)</option>
+        <option value="50">Medium (1–50)</option>
+        <option value="100">Hard (1–100)</option>
+    </select>
+
+    <p id="info">Choose difficulty and press New Game.</p>
+
+    <input id="guessInput" type="number" placeholder="Enter your guess">
+
+    <button class="guess" onclick="checkGuess()">GUESS 🎯</button>
+    <button class="hint" onclick="giveHint()">HINT 💡</button>
+    <button class="new" onclick="startGame()">NEW GAME 🔄</button>
+
+    <div class="result" id="result">Good luck! 🍀</div>
+
+    <div>❤️ Chances: <b id="chances">5</b></div>
+    <div>🏆 Score: <b id="score">0</b></div>
+    <div>👑 High Score: <b id="highScore">0</b></div>
+
+    <div class="stats">
+        📊 Games: <b id="games">0</b><br>
+        ✅ Wins: <b id="wins">0</b><br>
+        ❌ Losses: <b id="losses">0</b><br>
+        📈 Win Rate: <b id="winRate">0.0%</b>
+    </div>
+</div>
+
+<script>
+let secret = null;
+let chances = 5;
+let score = 0;
+let maxNumber = 10;
+let totalGames = 0;
+let wins = 0;
+let losses = 0;
+let highScore = 0;
+
+const saved = JSON.parse(localStorage.getItem("guessGameData") || "{}");
+highScore = saved.highScore || 0;
+totalGames = saved.totalGames || 0;
+wins = saved.wins || 0;
+losses = saved.losses || 0;
+
+function saveData() {
+    localStorage.setItem("guessGameData", JSON.stringify({
+        highScore, totalGames, wins, losses
+    }));
+}
+
+function updateStats() {
+    const rate = totalGames ? (wins / totalGames) * 100 : 0;
+    document.getElementById("games").textContent = totalGames;
+    document.getElementById("wins").textContent = wins;
+    document.getElementById("losses").textContent = losses;
+    document.getElementById("winRate").textContent = rate.toFixed(1) + "%";
+    document.getElementById("highScore").textContent = highScore;
+}
+
+function startGame() {
+    maxNumber = Number(document.getElementById("difficulty").value);
+    secret = Math.floor(Math.random() * maxNumber) + 1;
+    chances = 5;
+    score = 0;
+    totalGames++;
+
+    document.getElementById("info").textContent =
+        `Guess a number from 1 to ${maxNumber}`;
+    document.getElementById("result").textContent = "Good luck! 🍀";
+    document.getElementById("chances").textContent = chances;
+    document.getElementById("score").textContent = score;
+    document.getElementById("guessInput").value = "";
+    document.getElementById("guessInput").focus();
+
+    saveData();
+    updateStats();
+}
+
+function giveHint() {
+    if (secret === null) {
+        document.getElementById("result").textContent =
+            "⚠️ Start a new game first!";
+        return;
+    }
+    document.getElementById("result").textContent =
+        secret % 2 === 0
+        ? "💡 Hint: Number is EVEN"
+        : "💡 Hint: Number is ODD";
+}
+
+function checkGuess() {
+    if (secret === null) {
+        document.getElementById("result").textContent =
+            "⚠️ Press NEW GAME first!";
+        return;
+    }
+
+    const input = document.getElementById("guessInput");
+    const guess = Number(input.value);
+
+    if (!Number.isInteger(guess) || guess < 1 || guess > maxNumber) {
+        document.getElementById("result").textContent =
+            `⚠️ Enter a number from 1 to ${maxNumber}!`;
+        return;
+    }
+
+    if (chances <= 0) return;
+
+    if (guess === secret) {
+        score += 10;
+        wins++;
+
+        if (score > highScore) highScore = score;
+
+        document.getElementById("score").textContent = score;
+        document.getElementById("result").textContent = "🎉 CORRECT!";
+        document.getElementById("game").classList.add("win");
+
+        setTimeout(() => {
+            document.getElementById("result").textContent = "🔥 AWESOME!";
+        }, 500);
+
+        setTimeout(() => {
+            document.getElementById("result").textContent = "🏆 GREAT JOB!";
+            document.getElementById("game").classList.remove("win");
+        }, 1000);
+
+        saveData();
+        updateStats();
+        secret = null;
+        return;
+    }
+
+    chances--;
+    document.getElementById("chances").textContent = chances;
+
+    document.getElementById("result").textContent =
+        guess > secret ? "📈 Too high!" : "📉 Too low!";
+
+    if (chances === 0) {
+        losses++;
+        document.getElementById("result").textContent =
+            `💀 Game Over! Number was ${secret}`;
+        secret = null;
+        saveData();
+        updateStats();
+    }
+}
+
+document.getElementById("guessInput").addEventListener("keydown", e => {
+    if (e.key === "Enter") checkGuess();
+});
+
+updateStats();
+</script>
+
+</body>
+</html>
